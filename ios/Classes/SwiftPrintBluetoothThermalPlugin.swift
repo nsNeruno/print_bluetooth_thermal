@@ -14,7 +14,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
 
     var flutterResult: FlutterResult? //para el resul de flutter
     var bytes: [UInt8]? //variable para almacenar los bytes que llegan
-    var stringprint = ""; //variable para almacenar los string que llegan
+    var stringprint = "" //variable para almacenar los string que llegan
 
     // En el método init, inicializa el gestor central con un delegado
     //para solicitar el permiso del bluetooth
@@ -102,7 +102,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
             }
 
         }
-        else if call.method == "connect"{
+        else if call.method == "connect" {
             let macAddress = call.arguments as! String
             // Busca el dispositivo con la dirección MAC dada
             let peripherals = centralManager?.retrievePeripherals(withIdentifiers: [UUID(uuidString: macAddress)!])
@@ -143,6 +143,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
         }else if call.method == "writebytes"{
             guard let arguments = call.arguments as? [Int] else {
                 // Manejar el caso en que los argumentos no son del tipo esperado
+                result(false)
                 return
             }
             //let bytes = arguments
@@ -153,6 +154,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                 //print("bytes count: \(self.bytes?.count)")
                 guard let listbytes = call.arguments as? [UInt8] else {
                     // Manejar el caso en que los argumentos no son del tipo esperado
+                    result(false)
                     return
                 }
                 //self.connectedPeripheral?.writeValue(Data(listbytes), for: characteristic, type: .withoutResponse) //.withResponse, .withoutResponse
@@ -173,6 +175,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                 }
                 //la respuesta va en peripheral
                 //self.flutterResult?(true)
+                result(true)
             } else {
                 print("No hay caracteristica para imprimir")
                 result(false)
@@ -222,6 +225,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                     //la respuesta va en peripheral si es .withResponse
                     //self.flutterResult?(true)
                 }
+                result(true)
             } else {
                 print("No hay caracteristica para imprimir")
                 result(false)
@@ -229,6 +233,9 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
         } else if call.method == "disconnect"{
             if let peripheral = connectedPeripheral {
                 centralManager?.cancelPeripheralConnection(peripheral)
+                result(true)
+            } else {
+                result(false)
             }
             targetCharacteristic = nil
             //la respuesta va en centralManager segunda funcion
