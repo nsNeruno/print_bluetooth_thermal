@@ -3,32 +3,32 @@ import UIKit
 import CoreBluetooth
 
 public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate,  FlutterPlugin {
-    
+
     var centralManager: CBCentralManager?  // Define una variable para guardar el gestor central de bluetooth
     var discoveredDevices: [String] = []  //lista de bluetooths encontrados
     var connectedPeripheral: CBPeripheral?  //dispositivo conectado
     var targetService: CBService? // Variable global para el servicio objetivo
     //var characteristics: [CBCharacteristic] = [] // Variable global para almacenar las características encontradas
     var targetCharacteristic: CBCharacteristic? // Variable global para almacenar la característica objetivo
-    
-    
+
+
     var flutterResult: FlutterResult? //para el resul de flutter
     var bytes: [UInt8]? //variable para almacenar los bytes que llegan
     var stringprint = ""; //variable para almacenar los string que llegan
-    
+
     // En el método init, inicializa el gestor central con un delegado
     //para solicitar el permiso del bluetooth
     override init() {
         super.init()
         centralManager = CBCentralManager(delegate: self, queue: nil)
     }
-    
+
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "groons.web.app/print", binaryMessenger: registrar.messenger())
         let instance = SwiftPrintBluetoothThermalPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
-    
+
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         //para iniciar la variable result
         self.flutterResult = result
@@ -93,14 +93,14 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                 //print("El estado del bluetooth es desconocido (default)")
                 break
             }
-            
+
             // despues de 5 segundos se para la busqueda y se devuelve la lista de dispositivos disponibles
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                 self.centralManager?.stopScan()
                 print("Stopped scanning -> Discovered devices: \(self.discoveredDevices.count)")
                 result(self.discoveredDevices)
             }
-            
+
         }
         else if call.method == "connect"{
             let macAddress = call.arguments as! String
@@ -111,16 +111,16 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                 result(false)
                 return
             }
-            
+
             // Intenta conectar con el dispositivo
             centralManager?.connect(peripheral, options: nil)
-            
+
             // Verifica si la conexión fue exitosa después de un tiempo de espera
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                 if peripheral.state == .connected {
                     //print("Conexión exitosa con el dispositivo \(peripheral.name ?? "Desconocido")")
                     self.connectedPeripheral = peripheral
-                    
+
                     self.connectedPeripheral?.delegate = self
                     // Discover services of the connected peripheral
                     //se ejecuta los servicios descubiertos en primer peripheral
@@ -131,7 +131,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                     result(false)
                 }
             }
-            
+
         }else if call.method == "connectionstatus"{
             if connectedPeripheral?.state == CBPeripheralState.connected {
                 //print("El dispositivo periférico está conectado.")
@@ -147,7 +147,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
             }
             //let bytes = arguments
             self.bytes = arguments.map { UInt8($0) } //No se esta usando
-            
+
             if let characteristic = targetCharacteristic {
                 // Utiliza la variable characteristic desempaquetada aquí
                 //print("bytes count: \(self.bytes?.count)")
@@ -156,11 +156,11 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                     return
                 }
                 //self.connectedPeripheral?.writeValue(Data(listbytes), for: characteristic, type: .withoutResponse) //.withResponse, .withoutResponse
-                
+
                 //Imprimir bloques de 150 bytes en la impresora para que no se sature
                 let data: Data = Data(listbytes) // Datos que deseas imprimir
                 let chunkSize = 150 // Tamaño de cada fragmento en bytes
-                
+
                 var offset = 0
                 while offset < data.count {
                     let chunkRange = offset..<min(offset + chunkSize, data.count)
@@ -168,7 +168,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                     //print("chunkData count: \(chunkData.count)")
                     // Envía el fragmento para imprimir utilizando la característica deseada
                     self.connectedPeripheral?.writeValue(chunkData, for: characteristic, type: .withoutResponse)
-                    
+
                     offset += chunkSize
                 }
                 //la respuesta va en peripheral
@@ -177,7 +177,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                 print("No hay caracteristica para imprimir")
                 result(false)
             }
-            
+
         } else if call.method == "printstring"{
             self.stringprint = call.arguments as! String
             //print("llego a printstring\(self.stringprint)")
@@ -206,19 +206,19 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                         [0x1d, 0x21, 0x33] // Altura doblada 5
                     ]
                     let resetBytes: [UInt8] = [0x1b, 0x40]
-                    
+
                     // Envío de los datos
                     let datasize = Data(sizeBytes[size])
                     connectedPeripheral?.writeValue(datasize, for: characteristic, type: .withoutResponse)
-                    
+
                     let data = Data(texto.utf8)
                     connectedPeripheral?.writeValue(data, for: characteristic, type: .withResponse) //.withResponse, .withoutResponse
-                    
+
                     // reseteo de la impresora
                     let datareset = Data(resetBytes)
                     connectedPeripheral?.writeValue(datareset, for: characteristic, type: .withoutResponse)
                     stringprint = ""
-                    
+
                     //la respuesta va en peripheral si es .withResponse
                     //self.flutterResult?(true)
                 }
@@ -237,8 +237,8 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
             result(FlutterMethodNotImplemented) // Si se llama otro método que no está implementado, se devuelve un error
         }
     }
-    
-    
+
+
     public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         //print("Discovered \(peripheral.name ?? "Unknown") at \(RSSI) dBm")
         if let deviceName = peripheral.name {
@@ -250,7 +250,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
             }
         }
     }
-    
+
     //funcion para verificar si desconecto el dispositivo
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         if error != nil {
@@ -261,18 +261,18 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
             self.flutterResult?(true)
         }
     }
-    
+
     //detectar los servicios descubiertos y guardarlo para poder imprimir
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if let error = error {
             print("Error discovering services: \(error.localizedDescription)")
             return
         }
-        
+
         if let services = peripheral.services {
             for service in services {
                 print("Service discovered: \(service.uuid)")
-                
+
                 // Verifica si el servicio es el que estás buscando
                 let targetServiceUUID = CBUUID(string: "00001101-0000-1000-8000-00805F9B34FB")
                 let targetServiceUUID2 =  CBUUID(string: "49535343-FE7D-4AE5-8FA9-9FAFD205E455")
@@ -280,25 +280,25 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                     print("Service found: \(service.uuid)")
                     // Por ejemplo, puedes descubrir las características del servicio
                     peripheral.discoverCharacteristics(nil, for: service)
-                    
+
                     // También puedes almacenar el servicio en una variable para futuras referencias
                     // targetService = service
                     self.targetService = service;
                 }
-                
+
                 // Aquí puedes realizar operaciones adicionales con cada servicio encontrado, como descubrir características
                 peripheral.discoverCharacteristics(nil, for: service)
             }
         }
     }
-    
+
     // Implementación del método peripheral(_:didDiscoverCharacteristicsFor:error:) para buscar las caracteristicas del dispositivo bluetooth
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         if let error = error {
             print("Error discovering characteristics: \(error.localizedDescription)")
             return
         }
-        
+
         if let discoveredCharacteristics = service.characteristics {
             for characteristic in discoveredCharacteristics {
                 //print("characteristics found: \(characteristic.uuid)")
@@ -311,10 +311,10 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
                         print("characteristics found: \(characteristic.uuid) La característica no admite escritura")
                     }
                 }
-                
+
                 let targetCharacteristicUUID = CBUUID(string: "00001101-0000-1000-8000-00805F9B34FB")
                 let targetCharacteristicUUID2 =  CBUUID(string: "49535343-8841-43F4-A8D4-ECBE34729BB3")
-                
+
                 if characteristic.uuid == targetCharacteristicUUID || characteristic.uuid == targetCharacteristicUUID2 {
                     targetCharacteristic = characteristic // Guarda la característica objetivo en la variable global
                     print("Target characteristic found: \(characteristic.uuid)")
@@ -323,7 +323,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
             }
         }
     }
-    
+
     // Implementación del método peripheral(_:didWriteValueFor:error:) para saber si la impresion fue exitosa si se pasa .withResponse
     public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         if let error = error {
@@ -361,7 +361,7 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
             print("Otro caso no esperado")
         }
     }
-    
+
 }
 
 
