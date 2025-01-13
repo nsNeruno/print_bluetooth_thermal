@@ -20,7 +20,6 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
     //para solicitar el permiso del bluetooth
     override init() {
         super.init()
-        centralManager = CBCentralManager(delegate: self, queue: nil)
     }
 
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -29,70 +28,74 @@ public class SwiftPrintBluetoothThermalPlugin: NSObject, CBCentralManagerDelegat
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
 
-    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        //para iniciar la variable result
-        self.flutterResult = result
-        //result("iOS " + UIDevice.current.systemVersion)
-        //let argumento = call.arguments as! String //leer el argumento recibido
-        if call.method == "getPlatformVersion" { // Verifica si se está llamando el método "getPlatformVersion"
-            let iosVersion = UIDevice.current.systemVersion // Obtiene la versión de iOS
-            result("iOS " + iosVersion) // Devuelve el resultado como una cadena de texto
-        } else if call.method == "getBatteryLevel" {
-            let device = UIDevice.current
-            let batteryState = device.batteryState
-            let batteryLevel = device.batteryLevel * 100
-            result(Int(batteryLevel))
-        } else if call.method == "bluetoothenabled"{
-            switch centralManager?.state {
-            case .poweredOn:
-                result(true)
-            default:
-                result(false)
-            }
-        } else if call.method == "ispermissionbluetoothgranted"{
-            //let centralManager = CBCentralManager()
-            if #available(iOS 10.0, *) {
-                switch centralManager?.state {
-                case .poweredOn:
-                    print("Bluetooth is on")
-                    result(true)
-                default:
-                    print("Bluetooth is off")
-                    result(false)
-                }
-            }
-        } else if call.method == "pairedbluetooths" {
-            //print("buscando bluetooths");
-            //let discoveredDevices = scanForBluetoothDevices(duration: 5.0)
-            //print("Discovered devices: \(discoveredDevices)")
-            switch centralManager?.state {
-            case .unknown:
-                //print("El estado del bluetooth es desconocido")
-                break
-            case .resetting:
-                //print("El bluetooth se está reiniciando")
-                break
-            case .unsupported:
-                //print("El bluetooth no es compatible con este dispositivo")
-                break
-            case .unauthorized:
-                //print("El bluetooth no está autorizado para esta app")
-                break
-            case .poweredOff:
-                //print("El bluetooth está apagado")
-                centralManager?.stopScan()
-            case .poweredOn:
-                //print("El bluetooth está encendido")
-                //Escanea todos los bluetooths disponibles
-                centralManager?.scanForPeripherals(withServices: nil, options: nil)
-                // Escanea todos los dispositivos Bluetooth vinculados
-                centralManager?.retrieveConnectedPeripherals(withServices: [])
-            case .none:
-                break
-            @unknown default:
-                //print("El estado del bluetooth es desconocido (default)")
-                break
-            }
+  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    // En el método init, inicializa el gestor central con un delegado
+    //para solicitar el permiso del bluetooth
+    if (self.centralManager == nil) {
+        self.centralManager = CBCentralManager(delegate: self, queue: nil)
+    }
+
+    //para iniciar la variable result
+    self.flutterResult = result
+    //result("iOS " + UIDevice.current.systemVersion)
+    //let argumento = call.arguments as! String //leer el argumento recibido
+    if call.method == "getPlatformVersion" { // Verifica si se está llamando el método "getPlatformVersion"
+      let iosVersion = UIDevice.current.systemVersion // Obtiene la versión de iOS
+      result("iOS " + iosVersion) // Devuelve el resultado como una cadena de texto
+    } else if call.method == "getBatteryLevel" {
+      let device = UIDevice.current
+      let batteryState = device.batteryState
+      let batteryLevel = device.batteryLevel * 100
+      result(Int(batteryLevel))
+    } else if call.method == "bluetoothenabled"{
+      switch centralManager?.state {
+      case .poweredOn:
+          result(true)
+      default:
+          result(false)
+      }
+    } else if call.method == "ispermissionbluetoothgranted"{
+      //let centralManager = CBCentralManager()
+      if #available(iOS 10.0, *) {
+        switch centralManager?.state {
+        case .poweredOn:
+          print("Bluetooth is on")
+          result(true)
+        default:
+          print("Bluetooth is off")
+          result(false)
+        }
+      }
+    } else if call.method == "pairedbluetooths" {
+      //print("buscando bluetooths");
+      //let discoveredDevices = scanForBluetoothDevices(duration: 5.0)
+      //print("Discovered devices: \(discoveredDevices)")
+      switch centralManager?.state {
+        case .unknown:
+            //print("El estado del bluetooth es desconocido")
+            break
+        case .resetting:
+            //print("El bluetooth se está reiniciando")
+            break
+        case .unsupported:
+            //print("El bluetooth no es compatible con este dispositivo")
+            break
+        case .unauthorized:
+            //print("El bluetooth no está autorizado para esta app")
+            break
+        case .poweredOff:
+            //print("El bluetooth está apagado")
+            centralManager?.stopScan()
+        case .poweredOn:
+            //print("El bluetooth está encendido")
+            //Escanea todos los bluetooths disponibles
+            centralManager?.scanForPeripherals(withServices: nil, options: nil)
+            // Escanea todos los dispositivos Bluetooth vinculados
+            centralManager?.retrieveConnectedPeripherals(withServices: [])
+        @unknown default:
+            //print("El estado del bluetooth es desconocido (default)")
+            break
+      }
 
             // despues de 5 segundos se para la busqueda y se devuelve la lista de dispositivos disponibles
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
