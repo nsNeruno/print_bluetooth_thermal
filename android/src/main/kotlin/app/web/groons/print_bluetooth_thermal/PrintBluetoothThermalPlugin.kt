@@ -152,36 +152,11 @@ class PrintBluetoothThermalPlugin: FlutterPlugin, MethodCallHandler{
           result.success(false)
         }
       }
-    }else if (call.method == "writebytes") {
-      var lista: List<Int> = call.arguments as List<Int>
-      var bytes: ByteArray = "\n".toByteArray()
-
-      lista.forEach {
-        bytes += it.toByte()
-        //Log.d(TAG, "foreah: ${it}")
-      }
-      if(outputStream != null) {
-        try{
-          outputStream?.run {
-            write(bytes)
-            result.success(true)
-            //Log.d(TAG, "result print: ${bytes}")
-          }
-        }catch (e: Exception){
-          result.success(false)
-          outputStream = null
-          //mensajeToast("Dispositivo fue desconectado, reconecte")
-          Log.d(TAG, "error state print: ${e.message}")
-          /*var ex:String = e.message.toString()
-          if(ex=="Broken pipe"){
-            Log.d(TAG, "Dispositivo fue desconectado reconecte: ")
-            mensajeToast("Dispositivo fue desconectado, reconecte")
-          }*/
-        }
-      }else{
-        result.success(false)
-      }
-    }else if (call.method == "printstring") {
+    } else if (call.method == "writebytes") {
+      writeBytes(call, result)
+    } else if (call.method == "writeBytes2") {
+      writeBytes(call, result, true)
+    } else if (call.method == "printstring") {
       var stringllego: String = call.arguments.toString()
       //var lista = stringllego.split("*")
       //println("lista ${lista.toString()}")
@@ -262,6 +237,39 @@ class PrintBluetoothThermalPlugin: FlutterPlugin, MethodCallHandler{
       }
     }else {
       result.notImplemented()
+    }
+  }
+
+  private fun writeBytes(call: MethodCall, result: Result, skipNewLine: Boolean = false) {
+    var lista: List<Int> = call.arguments as List<Int>
+    var bytes: ByteArray = "\n".toByteArray()
+
+    if (!skipNewLine) {
+      lista.forEach {
+        bytes += it.toByte()
+        //Log.d(TAG, "foreah: ${it}")
+      }
+    }
+    if(outputStream != null) {
+      try{
+        outputStream?.run {
+          write(bytes)
+          result.success(true)
+          //Log.d(TAG, "result print: ${bytes}")
+        }
+      }catch (e: Exception){
+        result.success(false)
+        outputStream = null
+        //mensajeToast("Dispositivo fue desconectado, reconecte")
+        Log.d(TAG, "error state print: ${e.message}")
+        /*var ex:String = e.message.toString()
+        if(ex=="Broken pipe"){
+          Log.d(TAG, "Dispositivo fue desconectado reconecte: ")
+          mensajeToast("Dispositivo fue desconectado, reconecte")
+        }*/
+      }
+    }else{
+      result.success(false)
     }
   }
 

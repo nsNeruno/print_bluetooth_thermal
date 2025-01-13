@@ -102,13 +102,22 @@ class PrintBluetoothThermal {
   }
 
   ///send bytes to print, esc_pos_utils_plus package must be used, returns true if successful
-  static Future<bool> writeBytes(List<int> bytes) async {
+  static Future<bool> writeBytes(List<int> bytes, {bool androidSkipNewLine = false,}) async {
     //enviar bytes a la impresora
     if (Platform.isWindows) {
       return await PrintBluetoothThermalWindows.writeBytes(bytes: bytes);
     } else {
       try {
-        return await _channel.invokeMethod('writebytes', bytes);
+        if (Platform.isAndroid && androidSkipNewLine) {
+          return await _channel.invokeMethod(
+            'writebytes2',
+            bytes,
+          );
+        } else {
+          return await _channel.invokeMethod(
+            'writebytes', bytes,
+          );
+        }
       } on PlatformException catch (e) {
         print("Failed to write bytes: '${e.message}'.");
         return false;
