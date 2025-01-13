@@ -243,12 +243,15 @@ class PrintBluetoothThermalPlugin: FlutterPlugin, MethodCallHandler{
   private fun writeBytes(call: MethodCall, result: Result, skipNewLine: Boolean = false) {
     var lista: List<Int> = call.arguments as List<Int>
     var bytes: ByteArray = "\n".toByteArray()
+    byteArrayOf()
 
     if (!skipNewLine) {
       lista.forEach {
         bytes += it.toByte()
         //Log.d(TAG, "foreah: ${it}")
       }
+    } else {
+      bytes = lista.map { it.toByte() }.toByteArray()
     }
     if(outputStream != null) {
       try{
