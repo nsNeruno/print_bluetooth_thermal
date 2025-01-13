@@ -154,7 +154,7 @@ class PrintBluetoothThermalPlugin: FlutterPlugin, MethodCallHandler{
       }
     } else if (call.method == "writebytes") {
       writeBytes(call, result)
-    } else if (call.method == "writeBytes2") {
+    } else if (call.method == "writebytes2") {
       writeBytes(call, result, true)
     } else if (call.method == "printstring") {
       var stringllego: String = call.arguments.toString()
